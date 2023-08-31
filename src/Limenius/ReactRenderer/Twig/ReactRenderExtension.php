@@ -236,7 +236,7 @@ class ReactRenderExtension extends AbstractExtension
 
     private function getCacheKey(OptionsInterface $options, ComponentInterface $component): string
     {
-        return ($options->cacheKey() ?: $component->name()) . '.rendered';
+        return ($options->cacheKey() ?: $component->name() . '_' . md5($this->jsonEncode($component->props()))) . '.rendered';
     }
 
     /**
