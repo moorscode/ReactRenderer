@@ -13,6 +13,8 @@ interface ContextProviderInterface
      * getContext
      *
      * @param boolean $serverSide whether is this a server side context
+     *
+     * @return ContextInterface
      */
-    public function getContext($serverSide);
+    public function getContext(bool $serverSide): ContextInterface;
 }

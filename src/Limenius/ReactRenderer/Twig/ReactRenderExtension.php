@@ -2,167 +2,113 @@
 
 namespace Limenius\ReactRenderer\Twig;
 
+use Limenius\ReactRenderer\Context\ContextProviderInterface;
+use Limenius\ReactRenderer\Exception\PropsEncodeException;
+use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
+use Limenius\ReactRenderer\Renderer\RenderResultInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
-use Limenius\ReactRenderer\Renderer\AbstractReactRenderer;
-use Limenius\ReactRenderer\Context\ContextProviderInterface;
 
 class ReactRenderExtension extends AbstractExtension
 {
     protected $renderServerSide = false;
     protected $renderClientSide = false;
-    protected $registeredStores = array();
+    protected $registeredStores = [];
     protected $needsToSetRailsContext = true;
 
+    /** @var ReactRendererInterface|null */
     private $renderer;
-    private $staticRenderer;
+    /** @var ContextProviderInterface */
     private $contextProvider;
+    /** @var bool */
     private $trace;
-    private $buffer;
+    /** @var array */
+    private $buffer = [];
+    /** @var CacheItemPoolInterface|null */
     private $cache;
+    /** @var string */
+    private $twigFunctionPrefix;
+    /** @var string */
+    private $domIdPrefix;
 
-    public function __construct(AbstractReactRenderer $renderer = null, ContextProviderInterface $contextProvider, string $defaultRendering, bool $trace = false)
+    public function __construct(
+        ReactRendererInterface   $renderer = null,
+        ContextProviderInterface $contextProvider,
+        int                      $defaultRendering,
+        string                   $twigFunctionPrefix = '',
+        string                   $domIdPrefix = 'sfreact',
+        bool                     $trace = false
+    )
     {
         $this->renderer = $renderer;
         $this->contextProvider = $contextProvider;
+        $this->twigFunctionPrefix = $twigFunctionPrefix;
+        $this->domIdPrefix = $domIdPrefix;
         $this->trace = $trace;
-        $this->buffer = array();
 
         switch ($defaultRendering) {
-            case 'server_side':
+            case OptionsInterface::SERVER_SIDE_RENDERING:
                 $this->renderClientSide = false;
                 $this->renderServerSide = true;
                 break;
-            case 'client_side':
+            case OptionsInterface::CLIENT_SIDE_RENDERING:
                 $this->renderClientSide = true;
                 $this->renderServerSide = false;
                 break;
-            case 'both':
+            case OptionsInterface::SERVER_AND_CLIENT_SIDE_RENDERING:
+            default:
                 $this->renderClientSide = true;
                 $this->renderServerSide = true;
                 break;
         }
     }
 
-    public function setCache(CacheItemPoolInterface $cache)
+    public function getName(): string
+    {
+        return 'react_render_extension';
+    }
+
+    public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
     }
 
     public function getFunctions(): array
     {
-        return array(
-            new TwigFunction('react_component', array($this, 'reactRenderComponent'), array('is_safe' => array('html'))),
-            new TwigFunction('react_component_array', array($this, 'reactRenderComponentArray'), array('is_safe' => array('html'))),
-            new TwigFunction('redux_store', array($this, 'reactReduxStore'), array('is_safe' => array('html'))),
-            new TwigFunction('react_flush_buffer', array($this, 'reactFlushBuffer'), array('is_safe' => array('html'))),
-        );
+        return [
+            new TwigFunction($this->twigFunctionPrefix . 'react_component', [$this, 'reactRenderComponent'], ['is_safe' => ['html']]),
+            new TwigFunction($this->twigFunctionPrefix . 'redux_store', [$this, 'reactReduxStore'], ['is_safe' => ['html']]),
+            new TwigFunction($this->twigFunctionPrefix . 'react_flush_buffer', [$this, 'reactFlushBuffer'], ['is_safe' => ['html']]),
+        ];
     }
 
-    public function reactRenderComponentArray(string $componentName, array $options = array()): array
+    public function reactRenderComponent(string $componentName, OptionsInterface $options): array
     {
-        $props = isset($options['props']) ? $options['props'] : array();
-        $propsArray = is_array($props) ? $props : $this->jsonDecode($props);
-
         $str = '';
-        $data = array(
-            'component_name' => $componentName,
-            'props' => $propsArray,
-            'dom_id' => 'sfreact-'.uniqid('reactRenderer', true),
-            'trace' => $this->shouldTrace($options),
+
+        $component = new Component(
+            $componentName,
+            $options->props(),
+            $this->domIdPrefix . '-' . uniqid('reactRenderer', true),
+            $options['trace'] ?? $this->trace
         );
 
         if ($this->shouldRenderClientSide($options)) {
-            $tmpData = $this->renderContext();
-            $tmpData .= sprintf(
-                '<script type="application/json" class="js-react-on-rails-component" data-component-name="%s" data-dom-id="%s">%s</script>',
-                $data['component_name'],
-                $data['dom_id'],
-                $this->jsonEncode($data['props'])
-            );
-            if ($this->shouldBuffer($options) === true) {
-                $this->buffer[] = $tmpData;
-            } else {
-                $str .= $tmpData;
-            }
+            $str .= $this->createClientSideComponent($component, $options);
         }
-        $str .= '<div id="'.$data['dom_id'].'">';
+
+        $str .= '<div id="' . $component->domId() . '">';
 
         if ($this->shouldRenderServerSide($options)) {
-            $rendered = $this->serverSideRender($data, $options);
-            if ($rendered['hasErrors']) {
-                $str .= $rendered['evaluated'].$rendered['consoleReplay'];
-            } else {
-                $evaluated = $rendered['evaluated'];
-                $str .= $evaluated['componentHtml'].$rendered['consoleReplay'];
-            }
-        }
-        $str .= '</div>';
+            $result = $this->serverSideRender($component, $options);
 
-        $evaluated['componentHtml'] = $str;
-
-        return $evaluated;
-    }
-
-    public function reactRenderComponentArrayStatic(string $componentName, array $options = array()): string
-    {
-        $renderer = $this->renderer;
-        $this->renderer = $this->staticRenderer;
-
-        $rendered = $this->reactRenderComponentArray($componentName, $options);
-        $this->renderer = $renderer;
-
-        return $rendered;
-    }
-
-    public function reactRenderComponent(string $componentName, array $options = array()): string
-    {
-        $props = isset($options['props']) ? $options['props'] : array();
-        $propsArray = is_array($props) ? $props : $this->jsonDecode($props);
-
-        $str = '';
-        $data = array(
-            'component_name' => $componentName,
-            'props' => $propsArray,
-            'dom_id' => 'sfreact-'.uniqid('reactRenderer', true),
-            'trace' => $this->shouldTrace($options),
-        );
-
-        if ($this->shouldRenderClientSide($options)) {
-            $tmpData = $this->renderContext();
-            $tmpData .= sprintf(
-                '<script type="application/json" class="js-react-on-rails-component" data-component-name="%s" data-dom-id="%s">%s</script>',
-                $data['component_name'],
-                $data['dom_id'],
-                $this->jsonEncode($data['props'])
-            );
-            if ($this->shouldBuffer($options) === true) {
-                $this->buffer[] = $tmpData;
-            } else {
-                $str .= $tmpData;
-            }
-        }
-        $str .= '<div id="'.$data['dom_id'].'">';
-        if ($this->shouldRenderServerSide($options)) {
-            $rendered = $this->serverSideRender($data, $options);
-            $evaluated = $rendered['evaluated'];
-            $str .= $rendered['evaluated'].$rendered['consoleReplay'];
+            $str .= $result->result();
+            $str .= $result->consoleReplayScript();
         }
         $str .= '</div>';
 
         return $str;
-    }
-
-    public function reactRenderComponentStatic(string $componentName, array $options = array()): string
-    {
-        $renderer = $this->renderer;
-        $this->renderer = $this->staticRenderer;
-
-        $rendered = $this->reactRenderComponent($componentName, $options);
-        $this->renderer = $renderer;
-
-        return $rendered;
     }
 
     public function reactReduxStore(string $storeName, $props): string
@@ -176,70 +122,61 @@ class ReactRenderExtension extends AbstractExtension
             $propsString
         );
 
-        return $this->renderContext().$reduxStoreTag;
+        return $this->renderContext() . $reduxStoreTag;
     }
 
     public function reactFlushBuffer(): string
     {
-        $str = '';
-
-        foreach ($this->buffer as $item) {
-            $str .= $item;
-        }
+        $buffer = implode('', $this->buffer);
 
         $this->buffer = array();
 
-        return $str;
+        return $buffer;
     }
 
-    public function shouldRenderServerSide(array $options): bool
+    private function shouldRenderServerSide(OptionsInterface $options): bool
     {
-        if (isset($options['rendering'])) {
-            if (in_array($options['rendering'], ['server_side', 'both'], true)) {
-                return true;
-            } else {
-                return false;
-            }
+        if (is_null($options->rendering())) {
+            return $this->renderServerSide;
         }
 
-        return $this->renderServerSide;
+        return $options->rendering() ^ OptionsInterface::CLIENT_SIDE_RENDERING;
     }
 
-    public function shouldRenderClientSide(array $options): string
+    private function shouldRenderClientSide(OptionsInterface $options): bool
     {
-        if (isset($options['rendering'])) {
-            if (in_array($options['rendering'], ['client_side', 'both'], true)) {
-                return true;
-            } else {
-                return false;
-            }
+        if (is_null($options->rendering())) {
+            return $this->renderClientSide;
         }
 
-        return $this->renderClientSide;
-    }
-
-    public function getName(): string
-    {
-        return 'react_render_extension';
-    }
-
-    protected function shouldTrace(array $options): bool
-    {
-        return isset($options['trace']) ? $options['trace'] : $this->trace;
+        return $options->rendering() ^ OptionsInterface::SERVER_SIDE_RENDERING;
     }
 
     private function renderContext(): string
     {
-        if ($this->needsToSetRailsContext) {
-            $this->needsToSetRailsContext = false;
-
-            return sprintf(
-                '<script type="application/json" id="js-react-on-rails-context">%s</script>',
-                $this->jsonEncode($this->contextProvider->getContext(false))
-            );
+        if (!$this->needsToSetRailsContext) {
+            return '';
         }
 
-        return '';
+        $this->needsToSetRailsContext = false;
+
+        $context = $this->contextProvider->getContext(false);
+        $jsContext = $this->jsonEncode([
+            'serverSide' => $context->isServerSide(),
+            'href' => $context->href(),
+            'location' => $context->requestUri(),
+            'scheme' => $context->scheme(),
+            'host' => $context->host(),
+            'port' => $context->port(),
+            'base' => $context->baseUrl(),
+            'pathname' => $context->pathInfo(),
+            'search' => $context->queryString(),
+        ]);
+
+        return sprintf(
+            '<script type="application/json" id="js-react-on-rails-context">%s</script>',
+            $jsContext
+        );
     }
 
     private function jsonEncode($input): string
@@ -247,7 +184,7 @@ class ReactRenderExtension extends AbstractExtension
         $json = json_encode($input);
 
         if (json_last_error() !== 0) {
-            throw new \Limenius\ReactRenderer\Exception\PropsEncodeException(
+            throw new PropsEncodeException(
                 sprintf(
                     'JSON could not be encoded, Error Message was %s',
                     json_last_error_msg()
@@ -258,54 +195,38 @@ class ReactRenderExtension extends AbstractExtension
         return $json;
     }
 
-    private function jsonDecode($input): array
+    private function serverSideRender(ComponentInterface $component, OptionsInterface $options): RenderResultInterface
     {
-        $json = json_decode($input, true);
-
-        if (json_last_error() !== 0) {
-            throw new \Limenius\ReactRenderer\Exception\PropsDecodeException(
-                sprintf(
-                    'JSON could not be decoded, Error Message was %s',
-                    json_last_error_msg()
-                )
-            );
+        if ($options->cached()) {
+            return $this->renderCached($component, $options);
         }
 
-        return $json;
+        return $this->doServerSideRender($component);
     }
 
-    private function serverSideRender(array $data, array $options): array
-    {
-        if ($this->shouldCache($options)) {
-            return $this->renderCached($data, $options);
-        } else {
-            return $this->doServerSideRender($data);
-        }
-    }
-
-    private function doServerSideRender($data): array
+    private function doServerSideRender(ComponentInterface $component): RenderResultInterface
     {
         return $this->renderer->render(
-            $data['component_name'],
-            json_encode($data['props']),
-            $data['dom_id'],
+            $component->name(),
+            $this->jsonEncode($component->props()),
+            $component->domId(),
             $this->registeredStores,
-            $data['trace']
+            $component->trace()
         );
     }
 
-    private function renderCached($data, $options): array
+    private function renderCached(ComponentInterface $component, OptionsInterface $options): RenderResultInterface
     {
         if ($this->cache === null) {
-            return $this->doServerSideRender($data);
+            return $this->doServerSideRender($component);
         }
 
-        $cacheItem = $this->cache->getItem($data['component_name'].$this->getCacheKey($options, $data));
+        $cacheItem = $this->cache->getItem($component->name() . $this->getCacheKey($options, $component));
         if ($cacheItem->isHit()) {
             return $cacheItem->get();
         }
 
-        $rendered = $this->doServerSideRender($data);
+        $rendered = $this->doServerSideRender($component);
 
         $cacheItem->set($rendered);
         $this->cache->save($cacheItem);
@@ -313,18 +234,31 @@ class ReactRenderExtension extends AbstractExtension
         return $rendered;
     }
 
-    private function getCacheKey($options, $data): string
+    private function getCacheKey(OptionsInterface $options, ComponentInterface $component): string
     {
-        return isset($options['cache_key']) && $options['cache_key'] ? $options['cache_key'] : $data['component_name'].'.rendered';
+        return ($options->cacheKey() ?: $component->name()) . '.rendered';
     }
 
-    private function shouldCache($options): bool
+    /**
+     * @param ComponentInterface $component
+     * @param OptionsInterface $options
+     * @return string
+     */
+    private function createClientSideComponent(ComponentInterface $component, OptionsInterface $options): string
     {
-        return isset($options['cached']) && $options['cached'];
-    }
+        $output = $this->renderContext();
+        $output .= sprintf(
+            '<script type="application/json" class="js-react-on-rails-component" data-component-name="%s" data-dom-id="%s">%s</script>',
+            $component->name(),
+            $component->domId(),
+            $this->jsonEncode($component->props())
+        );
 
-    private function shouldBuffer($options): bool
-    {
-        return isset($options['buffered']) && $options['buffered'];
+        if ($options->buffered()) {
+            $this->buffer[] = $output;
+            return '';
+        }
+
+        return $output;
     }
 }

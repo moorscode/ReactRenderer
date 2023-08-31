@@ -28,22 +28,22 @@ class SymfonyContextProvider implements ContextProviderInterface
      *
      * @param boolean $serverSide whether is this a server side context
      *
-     * @return array the context information
+     * @return ContextInterface the context information
      */
-    public function getContext($serverSide)
+    public function getContext(bool $serverSide): ContextInterface
     {
         $request = $this->requestStack->getCurrentRequest();
 
-        return [
-            'serverSide' => $serverSide,
-            'href' => $request->getSchemeAndHttpHost().$request->getRequestUri(),
-            'location' => $request->getRequestUri(),
-            'scheme' => $request->getScheme(),
-            'host' => $request->getHost(),
-            'port' => $request->getPort(),
-            'base' => $request->getBaseUrl(),
-            'pathname' => $request->getPathInfo(),
-            'search' => $request->getQueryString(),
-        ];
+        return new Context(
+            $serverSide,
+            $request->getSchemeAndHttpHost() . $request->getRequestUri(),
+            $request->getRequestUri(),
+            $request->getScheme(),
+            $request->getHost(),
+            $request->getPort(),
+            $request->getBaseUrl(),
+            $request->getPathInfo(),
+            $request->getQueryString()
+        );
     }
 }
