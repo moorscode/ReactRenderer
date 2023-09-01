@@ -8,10 +8,18 @@
         {
             "name": "Nacho Martin",
             "email": "nacho@limenius.com"
+        },
+        {
+            "name": "Jip Moors",
+            "email": "jipmoors@myonlinestore.com"
         }
     ],
     "autoload": {
         "psr-4": { "Limenius\\ReactRenderer\\": "src/Limenius/ReactRenderer" }
+    },
+    "scripts": {
+        "cs": "@php vendor/bin/phpcs -s",
+        "lint": "@php ./vendor/php-parallel-lint/php-parallel-lint/parallel-lint . -e php --show-deprecated --exclude vendor --exclude .git"
     },
     "require": {
         "php": ">=7.2.0",
@@ -24,7 +32,8 @@
         "escapestudios/symfony2-coding-standard": "^3.0",
         "phpcompatibility/php-compatibility": "^9.0",
         "dealerdirect/phpcodesniffer-composer-installer": "v1.0.0",
-        "phpstan/phpstan": "^1.10"
+        "phpstan/phpstan": "^1.10",
+        "php-parallel-lint/php-parallel-lint": "^1.3"
     },
     "config": {
         "allow-plugins": {
