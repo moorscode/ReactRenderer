@@ -41,7 +41,8 @@ class RendererFactory
      */
     public function getRenderer(): ReactRendererInterface
     {
-        $renderer = $this->selectRenderer();
+        $renderer = iterator_to_array($this->taggedServices->getIterator())[0];
+
         if ($this->serverBundlePath && method_exists($renderer, 'setServerBundlePath')) {
             $renderer->setServerBundlePath($this->serverBundlePath);
         }
@@ -51,12 +52,5 @@ class RendererFactory
         }
 
         return $this->taggedServices[0];
-    }
-
-    private function selectRenderer(): ReactRendererInterface
-    {
-        foreach ($this->taggedServices as $service) {
-            return $service;
-        }
     }
 }
