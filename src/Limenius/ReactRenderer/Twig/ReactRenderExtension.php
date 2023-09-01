@@ -4,6 +4,7 @@ namespace Limenius\ReactRenderer\Twig;
 
 use Limenius\ReactRenderer\Context\ContextProviderInterface;
 use Limenius\ReactRenderer\Exception\PropsEncodeException;
+use Limenius\ReactRenderer\Factory\RendererFactory;
 use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
 use Limenius\ReactRenderer\Renderer\RenderResultInterface;
 use Psr\Cache\CacheItemPoolInterface;
@@ -21,7 +22,7 @@ class ReactRenderExtension extends AbstractExtension
     protected $registeredStores = [];
     protected $needsToSetRailsContext = true;
 
-    /** @var ReactRendererInterface|null */
+    /** @var ReactRendererInterface */
     private $renderer;
     /** @var ContextProviderInterface */
     private $contextProvider;
@@ -39,22 +40,22 @@ class ReactRenderExtension extends AbstractExtension
     /**
      * Constructor.
      *
-     * @param ReactRendererInterface|null $renderer
-     * @param ContextProviderInterface    $contextProvider
-     * @param int                         $defaultRendering
-     * @param string                      $twigFunctionPrefix
-     * @param string                      $domIdPrefix
-     * @param bool                        $trace
+     * @param RendererFactory          $rendererFactory
+     * @param ContextProviderInterface $contextProvider
+     * @param int                      $defaultRendering
+     * @param string                   $twigFunctionPrefix
+     * @param string                   $domIdPrefix
+     * @param bool                     $trace
      */
     public function __construct(
-        ReactRendererInterface $renderer = null,
+        RendererFactory $rendererFactory,
         ContextProviderInterface $contextProvider,
         int $defaultRendering,
         string $twigFunctionPrefix = '',
         string $domIdPrefix = 'sfreact',
         bool $trace = false
     ) {
-        $this->renderer = $renderer;
+        $this->renderer = $rendererFactory->getRenderer();
         $this->contextProvider = $contextProvider;
         $this->twigFunctionPrefix = $twigFunctionPrefix;
         $this->domIdPrefix = $domIdPrefix;
