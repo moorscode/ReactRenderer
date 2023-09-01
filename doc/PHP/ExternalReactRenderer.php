@@ -5,45 +5,37 @@ namespace PHP;
 use Limenius\ReactRenderer\Context\ContextProviderInterface;
 use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
 use Limenius\ReactRenderer\Renderer\RenderResult;
+use Limenius\ReactRenderer\Renderer\RenderResultInterface;
 use Psr\Log\LoggerInterface;
 
 /**
  * This class should be in the implementation repository.
- *
- * Class ExternalReactRenderer
  */
 class ExternalReactRenderer implements ReactRendererInterface
 {
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $serverSocketPath;
-
-    /**
-     * @var bool
-     */
+    /** @var bool */
     protected $failLoud;
-
-    /**
-     * @var LoggerInterface|null
-     */
+    /** @var LoggerInterface|null */
     private $logger;
-
-    /**
-     * @var ContextProviderInterface
-     */
+    /** @var ContextProviderInterface */
     private $contextProvider;
 
     /**
-     * ExternalServerReactRenderer constructor.
+     * Constructor.
      *
-     * @param string $serverSocketPath
-     * @param bool $failLoud
+     * @param string                   $serverSocketPath
+     * @param bool                     $failLoud
      * @param ContextProviderInterface $contextProvider
-     * @param LoggerInterface $logger
+     * @param LoggerInterface          $logger
      */
-    public function __construct(string $serverSocketPath, bool $failLoud, ContextProviderInterface $contextProvider, LoggerInterface $logger = null)
-    {
+    public function __construct(
+        string $serverSocketPath,
+        bool $failLoud,
+        ContextProviderInterface $contextProvider,
+        LoggerInterface $logger = null
+    ) {
         $this->serverSocketPath = $serverSocketPath;
         $this->failLoud = $failLoud;
         $this->logger = $logger;
@@ -62,21 +54,26 @@ class ExternalReactRenderer implements ReactRendererInterface
      * @param string $componentName
      * @param string $propsString
      * @param string $uuid
-     * @param array $registeredStores
-     * @param bool $trace
+     * @param array  $registeredStores
+     * @param bool   $trace
      *
-     * @return \Limenius\ReactRenderer\Renderer\RenderResultInterface
+     * @return RenderResultInterface
      */
-    public function render(string $componentName, string $propsString, string $uuid, array $registeredStores = array(), bool $trace = false): \Limenius\ReactRenderer\Renderer\RenderResultInterface
-    {
+    public function render(
+        string $componentName,
+        string $propsString,
+        string $uuid,
+        array $registeredStores = array(),
+        bool $trace = false
+    ): RenderResultInterface {
         if (strpos($this->serverSocketPath, '://') === false) {
-            $this->serverSocketPath = 'unix://' . $this->serverSocketPath;
+            $this->serverSocketPath = 'unix://'.$this->serverSocketPath;
         }
 
         if (!$sock = stream_socket_client($this->serverSocketPath, $errno, $errstr)) {
             throw new \RuntimeException($errstr);
         }
-        stream_socket_sendto($sock, $this->wrap($componentName, $propsString, $uuid, $registeredStores, $trace) . "\0");
+        stream_socket_sendto($sock, $this->wrap($componentName, $propsString, $uuid, $registeredStores, $trace)."\0");
 
         if (false === $contents = stream_get_contents($sock)) {
             throw new \RuntimeException('Failed to read content from external renderer.');
@@ -100,7 +97,7 @@ class ExternalReactRenderer implements ReactRendererInterface
     }
 
     /**
-     * @param array $registeredStores
+     * @param array  $registeredStores
      * @param string $context
      *
      * @return string
@@ -111,7 +108,7 @@ class ExternalReactRenderer implements ReactRendererInterface
             return '';
         }
 
-        $result = 'var reduxProps, context, storeGenerator, store' . PHP_EOL;
+        $result = 'var reduxProps, context, storeGenerator, store'.PHP_EOL;
         foreach ($registeredStores as $storeName => $reduxProps) {
             $result .= <<<JS
 reduxProps = $reduxProps;
@@ -125,7 +122,14 @@ JS;
         return $result;
     }
 
-    protected function logErrors($consoleReplay): void
+    /**
+     * Logs the errors extracted from the console replay.
+     *
+     * @param string $consoleReplay
+     *
+     * @return void
+     */
+    protected function logErrors(string $consoleReplay): void
     {
         if (!$this->logger) {
             return;
@@ -141,13 +145,18 @@ JS;
      * @param string $name
      * @param string $propsString
      * @param string $uuid
-     * @param array $registeredStores
-     * @param bool $trace
+     * @param array  $registeredStores
+     * @param bool   $trace
      *
      * @return string
      */
-    protected function wrap(string $name, string $propsString, string $uuid, array $registeredStores = array(), bool $trace = false): string
-    {
+    protected function wrap(
+        string $name,
+        string $propsString,
+        string $uuid,
+        array $registeredStores = array(),
+        bool $trace = false
+    ): string {
         $context = $this->contextProvider->getContext(true);
         $contextArray = [
             'serverSide' => $context->isServerSide(),
@@ -180,7 +189,14 @@ JS;
 JS;
     }
 
-    protected function extractErrorLines($consoleReplay): array
+    /**
+     * Extracts the error lines from a console replay script.
+     *
+     * @param string $consoleReplay
+     *
+     * @return array
+     */
+    protected function extractErrorLines(string $consoleReplay): array
     {
         $report = [];
         $lines = explode("\n", $consoleReplay);
@@ -194,7 +210,17 @@ JS;
         return $report;
     }
 
-    protected function throwError($consoleReplay, $componentName)
+    /**
+     * Converts the console replay script into a PHP error.
+     *
+     * @param string $consoleReplay
+     * @param string $componentName
+     *
+     * @return void
+     *
+     * @throws EvalJsException
+     */
+    protected function throwError(string $consoleReplay, string $componentName): void
     {
         $report = implode("\n", $this->extractErrorLines($consoleReplay));
         throw new EvalJsException($componentName, $report);

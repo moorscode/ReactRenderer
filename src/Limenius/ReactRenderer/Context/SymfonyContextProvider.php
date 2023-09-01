@@ -36,7 +36,7 @@ class SymfonyContextProvider implements ContextProviderInterface
 
         return new Context(
             $serverSide,
-            $request->getSchemeAndHttpHost() . $request->getRequestUri(),
+            $request->getSchemeAndHttpHost().$request->getRequestUri(),
             $request->getRequestUri(),
             $request->getScheme(),
             $request->getHost(),

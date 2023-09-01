@@ -3,29 +3,19 @@
     <description>ReactBundle coding standard.</description>
 
     <exclude-pattern>vendor/</exclude-pattern>
-    <exclude-pattern>Resources/</exclude-pattern>
 
     <rule ref="Symfony"/>
     <rule ref="PHPCompatibility"/>
 
     <config name="testVersion" value="7.2-"/>
 
-    <rule ref="PEAR.Functions.ValidDefaultValue.NotAtEnd">
-        <severity>0</severity>
-    </rule>
     <rule ref="Symfony.Commenting.License.Warning">
         <severity>0</severity>
     </rule>
-    <rule ref="Symfony.Commenting.FunctionComment.Missing">
+
+    <rule ref="Symfony.Functions.Arguments">
         <severity>0</severity>
     </rule>
-    <rule ref="Symfony.Commenting.ClassComment.Missing">
-        <severity>0</severity>
-    </rule>
-    <rule ref="Symfony.Formatting.ReturnOrThrow.Invalid">
-        <severity>0</severity>
-    </rule>
- 
 
     <arg value="p"/>
     <arg name="colors"/>

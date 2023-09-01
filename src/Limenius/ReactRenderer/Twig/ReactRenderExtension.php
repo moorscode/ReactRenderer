@@ -7,9 +7,13 @@ use Limenius\ReactRenderer\Exception\PropsEncodeException;
 use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
 use Limenius\ReactRenderer\Renderer\RenderResultInterface;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\InvalidArgumentException;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
+/**
+ * The Symfony/Twig extension that bridges the gap between Twig and the Server Side Rendering engine.
+ */
 class ReactRenderExtension extends AbstractExtension
 {
     protected $renderServerSide = false;
@@ -32,15 +36,24 @@ class ReactRenderExtension extends AbstractExtension
     /** @var string */
     private $domIdPrefix;
 
+    /**
+     * Constructor.
+     *
+     * @param ReactRendererInterface|null $renderer
+     * @param ContextProviderInterface    $contextProvider
+     * @param int                         $defaultRendering
+     * @param string                      $twigFunctionPrefix
+     * @param string                      $domIdPrefix
+     * @param bool                        $trace
+     */
     public function __construct(
-        ReactRendererInterface   $renderer = null,
+        ReactRendererInterface $renderer = null,
         ContextProviderInterface $contextProvider,
-        int                      $defaultRendering,
-        string                   $twigFunctionPrefix = '',
-        string                   $domIdPrefix = 'sfreact',
-        bool                     $trace = false
-    )
-    {
+        int $defaultRendering,
+        string $twigFunctionPrefix = '',
+        string $domIdPrefix = 'sfreact',
+        bool $trace = false
+    ) {
         $this->renderer = $renderer;
         $this->contextProvider = $contextProvider;
         $this->twigFunctionPrefix = $twigFunctionPrefix;
@@ -48,15 +61,15 @@ class ReactRenderExtension extends AbstractExtension
         $this->trace = $trace;
 
         switch ($defaultRendering) {
-            case OptionsInterface::SERVER_SIDE_RENDERING:
+            case ComponentInterface::SERVER_SIDE_RENDERING:
                 $this->renderClientSide = false;
                 $this->renderServerSide = true;
                 break;
-            case OptionsInterface::CLIENT_SIDE_RENDERING:
+            case ComponentInterface::CLIENT_SIDE_RENDERING:
                 $this->renderClientSide = true;
                 $this->renderServerSide = false;
                 break;
-            case OptionsInterface::SERVER_AND_CLIENT_SIDE_RENDERING:
+            case ComponentInterface::SERVER_AND_CLIENT_SIDE_RENDERING:
             default:
                 $this->renderClientSide = true;
                 $this->renderServerSide = true;
@@ -64,44 +77,98 @@ class ReactRenderExtension extends AbstractExtension
         }
     }
 
+    /**
+     * The name of this extension.
+     *
+     * @return string
+     */
     public function getName(): string
     {
         return 'react_render_extension';
     }
 
+    /**
+     * Configure the cache pool to use.
+     *
+     * @param CacheItemPoolInterface $cache
+     *
+     * @return void
+     */
     public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
     }
 
+    /**
+     * Provides the Twig functions that should be loaded.
+     *
+     * @return TwigFunction[]
+     */
     public function getFunctions(): array
     {
         return [
-            new TwigFunction($this->twigFunctionPrefix . 'react_component', [$this, 'reactRenderComponent'], ['is_safe' => ['html']]),
-            new TwigFunction($this->twigFunctionPrefix . 'redux_store', [$this, 'reactReduxStore'], ['is_safe' => ['html']]),
-            new TwigFunction($this->twigFunctionPrefix . 'react_flush_buffer', [$this, 'reactFlushBuffer'], ['is_safe' => ['html']]),
+            new TwigFunction(
+                $this->twigFunctionPrefix.'react_component',
+                [$this, 'reactRenderComponent'],
+                ['is_safe' => ['html']]
+            ),
+            new TwigFunction(
+                $this->twigFunctionPrefix.'redux_store',
+                [$this, 'reactReduxStore'],
+                ['is_safe' => ['html']]
+            ),
+            new TwigFunction(
+                $this->twigFunctionPrefix.'react_flush_buffer',
+                [$this, 'reactFlushBuffer'],
+                ['is_safe' => ['html']]
+            ),
         ];
     }
 
-    public function reactRenderComponent(string $componentName, OptionsInterface $options): array
-    {
+    /**
+     * Creates the React component output to be used in the Twig template.
+     *
+     * @param string    $componentName
+     * @param array     $props
+     * @param int       $rendering
+     * @param string    $cacheKey
+     * @param bool      $cached
+     * @param bool      $buffered
+     * @param bool|null $trace
+     *
+     * @return string
+     */
+    public function reactRenderComponent(
+        string $componentName,
+        array $props = array(),
+        int $rendering = ComponentInterface::CLIENT_SIDE_RENDERING,
+        string $cacheKey = '',
+        bool $cached = false,
+        bool $buffered = false,
+        ?bool $trace = null
+    ): string {
+        $domId = $this->domIdPrefix.'-'.uniqid('reactRenderer', true);
+
         $str = '';
 
         $component = new Component(
             $componentName,
-            $options->props(),
-            $this->domIdPrefix . '-' . uniqid('reactRenderer', true),
-            $options['trace'] ?? $this->trace
+            $props,
+            $rendering,
+            $cacheKey,
+            $cached,
+            $buffered,
+            $trace ?? $this->trace
         );
 
-        if ($this->shouldRenderClientSide($options)) {
-            $str .= $this->createClientSideComponent($component, $options);
+        if ($this->shouldRenderClientSide($component)) {
+            $str .= $this->createClientSideComponent($component, $domId);
         }
 
-        $str .= '<div id="' . $component->domId() . '">';
+        $str .= '<div id="'.$domId.'">';
 
-        if ($this->shouldRenderServerSide($options)) {
-            $result = $this->serverSideRender($component, $options);
+        if ($this->shouldRenderServerSide($component)) {
+            $result = $this->serverSideRender($component, $domId);
 
             $str .= $result->result();
             $str .= $result->consoleReplayScript();
@@ -111,9 +178,17 @@ class ReactRenderExtension extends AbstractExtension
         return $str;
     }
 
-    public function reactReduxStore(string $storeName, $props): string
+    /**
+     * Creates the Redux store output to be used in the Twig template.
+     *
+     * @param string $storeName
+     * @param array  $props
+     *
+     * @return string
+     */
+    public function reactReduxStore(string $storeName, array $props): string
     {
-        $propsString = is_array($props) ? $this->jsonEncode($props) : $props;
+        $propsString = $this->jsonEncode($props);
         $this->registeredStores[$storeName] = $propsString;
 
         $reduxStoreTag = sprintf(
@@ -122,9 +197,14 @@ class ReactRenderExtension extends AbstractExtension
             $propsString
         );
 
-        return $this->renderContext() . $reduxStoreTag;
+        return $this->renderContext().$reduxStoreTag;
     }
 
+    /**
+     * Flushes the buffered components to the Twig template.
+     *
+     * @return string
+     */
     public function reactFlushBuffer(): string
     {
         $buffer = implode('', $this->buffer);
@@ -134,24 +214,43 @@ class ReactRenderExtension extends AbstractExtension
         return $buffer;
     }
 
-    private function shouldRenderServerSide(OptionsInterface $options): bool
+    /**
+     * Indicates if the component should be rendered server side.
+     *
+     * @param ComponentInterface $component
+     *
+     * @return bool
+     */
+    private function shouldRenderServerSide(ComponentInterface $component): bool
     {
-        if (is_null($options->rendering())) {
+        if (is_null($component->rendering())) {
             return $this->renderServerSide;
         }
 
-        return $options->rendering() ^ OptionsInterface::CLIENT_SIDE_RENDERING;
+        return $component->rendering() ^ ComponentInterface::CLIENT_SIDE_RENDERING;
     }
 
-    private function shouldRenderClientSide(OptionsInterface $options): bool
+    /**
+     * Indicates if the component should be rendered client side.
+     *
+     * @param ComponentInterface $component
+     *
+     * @return bool
+     */
+    private function shouldRenderClientSide(ComponentInterface $component): bool
     {
-        if (is_null($options->rendering())) {
+        if (is_null($component->rendering())) {
             return $this->renderClientSide;
         }
 
-        return $options->rendering() ^ OptionsInterface::SERVER_SIDE_RENDERING;
+        return $component->rendering() ^ ComponentInterface::SERVER_SIDE_RENDERING;
     }
 
+    /**
+     * Renders the context if not already rendered.
+     *
+     * @return string
+     */
     private function renderContext(): string
     {
         if (!$this->needsToSetRailsContext) {
@@ -179,6 +278,13 @@ class ReactRenderExtension extends AbstractExtension
         );
     }
 
+    /**
+     * Safely encodes the input to a JSON string.
+     *
+     * @param mixed $input
+     *
+     * @return string
+     */
     private function jsonEncode($input): string
     {
         $json = json_encode($input);
@@ -195,67 +301,108 @@ class ReactRenderExtension extends AbstractExtension
         return $json;
     }
 
-    private function serverSideRender(ComponentInterface $component, OptionsInterface $options): RenderResultInterface
+    /**
+     * Renders the component via the server side method.
+     *
+     * @param ComponentInterface $component
+     * @param string             $domId
+     *
+     * @return RenderResultInterface
+     */
+    private function serverSideRender(ComponentInterface $component, string $domId): RenderResultInterface
     {
-        if ($options->cached()) {
-            return $this->renderCached($component, $options);
+        if ($component->cached()) {
+            return $this->renderCached($component, $domId);
         }
 
-        return $this->doServerSideRender($component);
+        return $this->doServerSideRender($component, $domId);
     }
 
-    private function doServerSideRender(ComponentInterface $component): RenderResultInterface
+    /**
+     * Calls the server side render method.
+     *
+     * @param ComponentInterface $component
+     * @param string             $domId
+     *
+     * @return RenderResultInterface
+     */
+    private function doServerSideRender(ComponentInterface $component, string $domId): RenderResultInterface
     {
         return $this->renderer->render(
             $component->name(),
-            $this->jsonEncode($component->props()),
-            $component->domId(),
+            $component->propsAsString(),
+            $domId,
             $this->registeredStores,
             $component->trace()
         );
     }
 
-    private function renderCached(ComponentInterface $component, OptionsInterface $options): RenderResultInterface
+    /**
+     * Caches the server side render output.
+     *
+     * @param ComponentInterface $component
+     * @param string             $domId
+     *
+     * @return RenderResultInterface
+     */
+    private function renderCached(ComponentInterface $component, string $domId): RenderResultInterface
     {
         if ($this->cache === null) {
-            return $this->doServerSideRender($component);
+            return $this->doServerSideRender($component, $domId);
         }
 
-        $cacheItem = $this->cache->getItem($component->name() . $this->getCacheKey($options, $component));
-        if ($cacheItem->isHit()) {
-            return $cacheItem->get();
+        try {
+            $cacheItem = $this->cache->getItem($this->getCacheKey($component));
+            if ($cacheItem->isHit()) {
+                return $cacheItem->get();
+            }
+        } catch (InvalidArgumentException $exception) {
+            // Do nothing.
         }
 
-        $rendered = $this->doServerSideRender($component);
+        $rendered = $this->doServerSideRender($component, $domId);
 
-        $cacheItem->set($rendered);
-        $this->cache->save($cacheItem);
+        if (isset($cacheItem)) {
+            $cacheItem->set($rendered);
+            $this->cache->save($cacheItem);
+        }
 
         return $rendered;
     }
 
-    private function getCacheKey(OptionsInterface $options, ComponentInterface $component): string
+    /**
+     * Provides the cache key to be used for the component.
+     *
+     * @param ComponentInterface $component
+     *
+     * @return string
+     */
+    private function getCacheKey(ComponentInterface $component): string
     {
-        return ($options->cacheKey() ?: $component->name() . '_' . md5($this->jsonEncode($component->props()))) . '.rendered';
+        return ($component->cacheKey() ?: $component->name().'_'.md5($component->propsAsString())).'.rendered';
     }
 
     /**
+     * Renders the client side component.
+     *
      * @param ComponentInterface $component
-     * @param OptionsInterface $options
+     * @param string             $domId
+     *
      * @return string
      */
-    private function createClientSideComponent(ComponentInterface $component, OptionsInterface $options): string
+    private function createClientSideComponent(ComponentInterface $component, string $domId): string
     {
         $output = $this->renderContext();
         $output .= sprintf(
             '<script type="application/json" class="js-react-on-rails-component" data-component-name="%s" data-dom-id="%s">%s</script>',
             $component->name(),
-            $component->domId(),
-            $this->jsonEncode($component->props())
+            $domId,
+            $component->propsAsString()
         );
 
-        if ($options->buffered()) {
+        if ($component->buffered()) {
             $this->buffer[] = $output;
+
             return '';
         }
 

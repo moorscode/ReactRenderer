@@ -17,62 +17,51 @@ use Psr\Log\LoggerInterface;
  */
 class PhpExecJsReactRenderer implements ReactRendererInterface
 {
-    /**
-     * @var PhpExecJs
-     */
+    /** @var PhpExecJs */
     protected $phpExecJs;
-
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $serverBundlePath;
-
-    /**
-     * @var bool
-     */
+    /** @var bool */
     protected $needToSetContext = true;
-
-    /**
-     * @var bool
-     */
+    /** @var bool */
     protected $failLoud;
-
-    /**
-     * @var \CacheItemPoolInterface
-     */
+    /** @var \CacheItemPoolInterface */
     protected $cache;
-
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $cacheKey;
-
-    /**
-     * @var LoggerInterface|null
-     */
+    /** @var LoggerInterface|null */
     private $logger;
-
-    /**
-     * @var ContextProviderInterface
-     */
+    /** @var ContextProviderInterface */
     private $contextProvider;
 
     /**
      * PhpExecJsReactRenderer constructor.
      *
-     * @param string $serverBundlePath
-     * @param bool $failLoud
+     * @param string                   $serverBundlePath
+     * @param bool                     $failLoud
      * @param ContextProviderInterface $contextProvider
-     * @param LoggerInterface $logger
+     * @param LoggerInterface          $logger
      */
-    public function __construct(string $serverBundlePath, bool $failLoud, ContextProviderInterface $contextProvider, LoggerInterface $logger = null)
-    {
+    public function __construct(
+        string $serverBundlePath,
+        bool $failLoud,
+        ContextProviderInterface $contextProvider,
+        LoggerInterface $logger = null
+    ) {
         $this->serverBundlePath = $serverBundlePath;
         $this->failLoud = $failLoud;
         $this->logger = $logger;
         $this->contextProvider = $contextProvider;
     }
 
+    /**
+     * Sets the cache pool to be used.
+     *
+     * @param CacheItemPoolInterface $cache
+     * @param                        $cacheKey
+     *
+     * @return void
+     */
     public function setCache(CacheItemPoolInterface $cache, $cacheKey)
     {
         $this->cache = $cache;
@@ -100,22 +89,33 @@ class PhpExecJsReactRenderer implements ReactRendererInterface
      * @param string $componentName
      * @param string $propsString
      * @param string $uuid
-     * @param array $registeredStores
-     * @param bool $trace
+     * @param array  $registeredStores
+     * @param bool   $trace
      *
      * @return RenderResultInterface
      */
-    public function render(string $componentName, string $propsString, string $uuid, array $registeredStores = array(), bool $trace = false): RenderResultInterface
-    {
+    public function render(
+        string $componentName,
+        string $propsString,
+        string $uuid,
+        array $registeredStores = array(),
+        bool $trace = false
+    ): RenderResultInterface {
         $this->ensurePhpExecJsIsBuilt();
         if ($this->needToSetContext) {
             if ($this->phpExecJs->supportsCache()) {
                 $this->phpExecJs->setCache($this->cache);
             }
-            $this->phpExecJs->createContext($this->consolePolyfill() . "\n" . $this->timerPolyfills($trace) . "\n" . $this->loadServerBundle(), $this->cacheKey);
+            $this->phpExecJs->createContext(
+                $this->consolePolyfill()."\n".$this->timerPolyfills($trace)."\n".$this->loadServerBundle(),
+                $this->cacheKey
+            );
             $this->needToSetContext = false;
         }
-        $result = json_decode($this->phpExecJs->evalJs($this->wrap($componentName, $propsString, $uuid, $registeredStores, $trace)), true);
+        $result = json_decode(
+            $this->phpExecJs->evalJs($this->wrap($componentName, $propsString, $uuid, $registeredStores, $trace)),
+            true
+        );
         if ($result['hasErrors']) {
             $this->logErrors($result['consoleReplayScript']);
             if ($this->failLoud) {
@@ -133,7 +133,7 @@ class PhpExecJsReactRenderer implements ReactRendererInterface
     /**
      * @return string
      */
-    protected function consolePolyfill()
+    protected function consolePolyfill(): string
     {
         return <<<JS
 var console = { history: [] };
@@ -150,7 +150,7 @@ JS;
     }
 
     /**
-     * @param array $registeredStores
+     * @param array  $registeredStores
      * @param string $context
      *
      * @return string
@@ -161,7 +161,7 @@ JS;
             return '';
         }
 
-        $result = 'var reduxProps, context, storeGenerator, store' . PHP_EOL;
+        $result = 'var reduxProps, context, storeGenerator, store'.PHP_EOL;
         foreach ($registeredStores as $storeName => $reduxProps) {
             $result .= <<<JS
 reduxProps = $reduxProps;
@@ -179,13 +179,18 @@ JS;
      * @param string $name
      * @param string $propsString
      * @param string $uuid
-     * @param array $registeredStores
-     * @param bool $trace
+     * @param array  $registeredStores
+     * @param bool   $trace
      *
      * @return string
      */
-    protected function wrap(string $name, string $propsString, string $uuid, array $registeredStores = array(), bool $trace = false): string
-    {
+    protected function wrap(
+        string $name,
+        string $propsString,
+        string $uuid,
+        array $registeredStores = array(),
+        bool $trace = false
+    ): string {
         $context = $this->contextProvider->getContext(true);
         $contextArray = [
             'serverSide' => $context->isServerSide(),
@@ -217,6 +222,11 @@ JS;
 JS;
     }
 
+    /**
+     * Loads the server bundle script.
+     *
+     * @return string
+     */
     protected function loadServerBundle(): string
     {
         if (!$serverBundle = @file_get_contents($this->serverBundlePath)) {
@@ -226,11 +236,18 @@ JS;
         return $serverBundle;
     }
 
+    /**
+     * Ensures some PhpExecJs instance is loaded.
+     *
+     * @return void
+     */
     protected function ensurePhpExecJsIsBuilt()
     {
-        if (!$this->phpExecJs) {
-            $this->phpExecJs = new PhpExecJs();
+        if ($this->phpExecJs) {
+            return;
         }
+
+        $this->phpExecJs = new PhpExecJs();
     }
 
     /**
@@ -269,11 +286,11 @@ JS;
 
     /**
      * @param string $functionName
-     * @param bool $trace
+     * @param bool   $trace
      *
      * @return string
      */
-    protected function undefinedForPhpExecJsLogging(string $functionName, bool $trace)
+    protected function undefinedForPhpExecJsLogging(string $functionName, bool $trace): string
     {
         return !$trace ? '' : <<<JS
 console.error(
@@ -284,7 +301,14 @@ console.error(getStackTrace().join('\\n'));
 JS;
     }
 
-    protected function logErrors($consoleReplay)
+    /**
+     * Logs the errors found in the console replay script.
+     *
+     * @param string $consoleReplay
+     *
+     * @return void
+     */
+    protected function logErrors(string $consoleReplay): void
     {
         if (!$this->logger) {
             return;
@@ -295,7 +319,14 @@ JS;
         }
     }
 
-    protected function extractErrorLines($consoleReplay): array
+    /**
+     * Extracts the error lines from the console replay script.
+     *
+     * @param string $consoleReplay
+     *
+     * @return array
+     */
+    protected function extractErrorLines(string $consoleReplay): array
     {
         $report = [];
         $lines = explode("\n", $consoleReplay);
@@ -309,7 +340,17 @@ JS;
         return $report;
     }
 
-    protected function throwError($consoleReplay, $componentName)
+    /**
+     * Converts the console replay script errors into a PHP error.
+     *
+     * @param string $consoleReplay
+     * @param string $componentName
+     *
+     * @return mixed
+     *
+     * @throws EvalJsException
+     */
+    protected function throwError(string $consoleReplay, string $componentName): void
     {
         $report = implode("\n", $this->extractErrorLines($consoleReplay));
         throw new EvalJsException($componentName, $report);

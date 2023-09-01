@@ -2,13 +2,17 @@
 
 namespace Limenius\ReactRenderer\Renderer;
 
-interface ReactRendererInterface {
+/**
+ * The signature a ReactRender implementation must follow.
+ */
+interface ReactRendererInterface
+{
     /**
      * @param string $componentName
      * @param string $propsString
      * @param string $uuid
-     * @param array $registeredStores
-     * @param bool $trace
+     * @param array  $registeredStores
+     * @param bool   $trace
      *
      * @return RenderResultInterface
      */
