@@ -51,6 +51,6 @@ class RendererFactory
             $renderer->setServerSocketPath($this->serverSocketPath);
         }
 
-        return $this->taggedServices[0];
+        return $renderer;
     }
 }
