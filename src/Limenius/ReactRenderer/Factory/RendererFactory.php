@@ -19,7 +19,7 @@ class RendererFactory
     /**
      * @param ReactRendererInterface[] $taggedServices
      */
-    public function __construct(array $taggedServices)
+    public function __construct(iterable $taggedServices)
     {
         $this->taggedServices = $taggedServices;
     }
