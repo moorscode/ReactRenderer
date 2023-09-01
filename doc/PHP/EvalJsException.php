@@ -1,7 +1,5 @@
 <?php
-
-
-namespace PHP;
+// phpcs:disable PSR1.Classes.ClassDeclaration.MissingNamespace
 
 /**
  * Class EvalJsException

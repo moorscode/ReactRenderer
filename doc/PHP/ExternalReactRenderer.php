@@ -1,6 +1,5 @@
 <?php
-
-namespace PHP;
+// phpcs:disable PSR1.Classes.ClassDeclaration.MissingNamespace
 
 use Limenius\ReactRenderer\Context\ContextProviderInterface;
 use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
