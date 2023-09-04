@@ -29,15 +29,15 @@ class Context implements ContextInterface
     /**
      * Constructor.
      *
-     * @param bool   $serverSide
-     * @param string $href
-     * @param string $requestUri
-     * @param string $scheme
-     * @param string $host
-     * @param int    $port
-     * @param string $baseUrl
-     * @param string $pathInfo
-     * @param string $queryString
+     * @param bool        $serverSide
+     * @param string      $href
+     * @param string      $requestUri
+     * @param string      $scheme
+     * @param string      $host
+     * @param int         $port
+     * @param string      $baseUrl
+     * @param string      $pathInfo
+     * @param string|null $queryString
      */
     public function __construct(
         bool $serverSide,
@@ -48,7 +48,7 @@ class Context implements ContextInterface
         int $port,
         string $baseUrl,
         string $pathInfo,
-        string $queryString
+        ?string $queryString
     ) {
         $this->serverSide = $serverSide;
         $this->href = $href;
@@ -58,7 +58,7 @@ class Context implements ContextInterface
         $this->port = $port;
         $this->baseUrl = $baseUrl;
         $this->pathInfo = $pathInfo;
-        $this->queryString = $queryString;
+        $this->queryString = $queryString ?: '';
     }
 
     /**
