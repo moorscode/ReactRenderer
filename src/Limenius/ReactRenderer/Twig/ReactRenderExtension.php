@@ -146,7 +146,7 @@ class ReactRenderExtension extends AbstractExtension
     public function reactRenderComponent(
         string $componentName,
         array $props = array(),
-        int $rendering = ComponentInterface::CLIENT_SIDE_RENDERING,
+        int $rendering = ComponentInterface::SERVER_AND_CLIENT_SIDE_RENDERING,
         string $cacheKey = '',
         bool $cached = false,
         bool $buffered = false,
