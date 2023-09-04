@@ -12,28 +12,25 @@ class RendererFactory
 {
     /** @var ReactRendererInterface[] */
     private $taggedServices;
-    /** @var string */
-    private $serverSocketPath;
-    /** @var string */
-    private $serverBundlePath;
+    private ?string $serverSocketPath;
+    private ?string $serverBundlePath;
     private LoggerInterface $logger;
 
     /**
      * @param ReactRendererInterface[] $taggedServices
+     * @param string|null              $serverBundlePath
+     * @param string|null              $serverSocketPath
+     * @param LoggerInterface          $logger
      */
-    public function __construct(iterable $taggedServices, LoggerInterface $logger)
-    {
+    public function __construct(
+        iterable $taggedServices,
+        ?string $serverBundlePath,
+        ?string $serverSocketPath,
+        LoggerInterface $logger
+    ) {
         $this->taggedServices = $taggedServices;
         $this->logger = $logger;
-    }
-
-    public function setServerSocketPath(string $serverSocketPath): void
-    {
         $this->serverSocketPath = $serverSocketPath;
-    }
-
-    public function setServerBundlePath(string $serverBundlePath): void
-    {
         $this->serverBundlePath = $serverBundlePath;
     }
 
@@ -45,8 +42,6 @@ class RendererFactory
     public function getRenderer(): ReactRendererInterface
     {
         $renderer = iterator_to_array($this->taggedServices->getIterator())[0];
-        $this->logger->debug(var_export($this->taggedServices->getIterator(), true));
-        $this->logger->debug(var_export($renderer, true));
 
         if ($this->serverBundlePath && method_exists($renderer, 'setServerBundlePath')) {
             $renderer->setServerBundlePath($this->serverBundlePath);
