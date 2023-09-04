@@ -3,6 +3,7 @@
 namespace Limenius\ReactRenderer\Factory;
 
 use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Provides the configured renderer in the system.
@@ -15,13 +16,15 @@ class RendererFactory
     private $serverSocketPath;
     /** @var string */
     private $serverBundlePath;
+    private LoggerInterface $logger;
 
     /**
      * @param ReactRendererInterface[] $taggedServices
      */
-    public function __construct(iterable $taggedServices)
+    public function __construct(iterable $taggedServices, LoggerInterface $logger)
     {
         $this->taggedServices = $taggedServices;
+        $this->logger = $logger;
     }
 
     public function setServerSocketPath(string $serverSocketPath): void
@@ -42,6 +45,8 @@ class RendererFactory
     public function getRenderer(): ReactRendererInterface
     {
         $renderer = iterator_to_array($this->taggedServices->getIterator())[0];
+        $this->logger->debug(var_export($this->taggedServices->getIterator(), true));
+        $this->logger->debug(var_export($renderer, true));
 
         if ($this->serverBundlePath && method_exists($renderer, 'setServerBundlePath')) {
             $renderer->setServerBundlePath($this->serverBundlePath);
