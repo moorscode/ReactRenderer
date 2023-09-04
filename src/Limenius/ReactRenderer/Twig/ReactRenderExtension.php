@@ -92,12 +92,16 @@ class ReactRenderExtension extends AbstractExtension
      * Configure the cache pool to use.
      *
      * @param CacheItemPoolInterface $cache
+     * @param string                 $cacheKey
      *
      * @return void
      */
-    public function setCache(CacheItemPoolInterface $cache): void
+    public function setCache(CacheItemPoolInterface $cache, string $cacheKey = ''): void
     {
         $this->cache = $cache;
+        if (method_exists($this->renderer, 'setCache')) {
+            $this->renderer->setCache($cache, $cacheKey);
+        }
     }
 
     /**
