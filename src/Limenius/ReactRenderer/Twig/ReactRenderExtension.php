@@ -17,25 +17,18 @@ use Twig\TwigFunction;
  */
 class ReactRenderExtension extends AbstractExtension
 {
-    protected $renderServerSide = false;
-    protected $renderClientSide = false;
-    protected $registeredStores = [];
-    protected $needsToSetRailsContext = true;
+    protected bool $renderServerSide = false;
+    protected bool $renderClientSide = false;
+    protected array $registeredStores = [];
+    protected bool $needsToSetRailsContext = true;
 
-    /** @var ReactRendererInterface */
-    private $renderer;
-    /** @var ContextProviderInterface */
-    private $contextProvider;
-    /** @var bool */
-    private $trace;
-    /** @var array */
-    private $buffer = [];
-    /** @var CacheItemPoolInterface|null */
-    private $cache;
-    /** @var string */
-    private $twigFunctionPrefix;
-    /** @var string */
-    private $domIdPrefix;
+    private ReactRendererInterface $renderer;
+    private ContextProviderInterface $contextProvider;
+    private bool $trace;
+    private array $buffer = [];
+    private ?CacheItemPoolInterface $cache;
+    private string $twigFunctionPrefix;
+    private string $domIdPrefix;
 
     /**
      * Constructor.
@@ -92,16 +85,12 @@ class ReactRenderExtension extends AbstractExtension
      * Configure the cache pool to use.
      *
      * @param CacheItemPoolInterface $cache
-     * @param string                 $cacheKey
      *
      * @return void
      */
-    public function setCache(CacheItemPoolInterface $cache, string $cacheKey = ''): void
+    public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
-        if (method_exists($this->renderer, 'setCache')) {
-            $this->renderer->setCache($cache, $cacheKey);
-        }
     }
 
     /**
@@ -384,7 +373,7 @@ class ReactRenderExtension extends AbstractExtension
      */
     private function getCacheKey(ComponentInterface $component): string
     {
-        return ($component->cacheKey() ?: $component->name().'_'.md5($component->propsAsString())).'.rendered';
+        return $component->name().'_'.md5($component->propsAsString()).'.rendered';
     }
 
     /**

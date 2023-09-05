@@ -2,6 +2,8 @@
 
 namespace Limenius\ReactRenderer\Renderer;
 
+use Psr\Cache\CacheItemPoolInterface;
+
 /**
  * The signature a ReactRender implementation must follow.
  */
