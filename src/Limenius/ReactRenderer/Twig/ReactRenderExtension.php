@@ -23,12 +23,8 @@ class ReactRenderExtension extends AbstractExtension
     protected bool $needsToSetRailsContext = true;
 
     private ReactRendererInterface $renderer;
-    private ContextProviderInterface $contextProvider;
-    private bool $trace;
     private array $buffer = [];
     private ?CacheItemPoolInterface $cache;
-    private string $twigFunctionPrefix;
-    private string $domIdPrefix;
 
     /**
      * Constructor.
@@ -42,17 +38,13 @@ class ReactRenderExtension extends AbstractExtension
      */
     public function __construct(
         RendererFactory $rendererFactory,
-        ContextProviderInterface $contextProvider,
+        private readonly ContextProviderInterface $contextProvider,
         int $defaultRendering,
-        string $twigFunctionPrefix = '',
-        string $domIdPrefix = 'sfreact',
-        bool $trace = false
+        private readonly string $twigFunctionPrefix = '',
+        private readonly string $domIdPrefix = 'sfreact',
+        private readonly bool $trace = false
     ) {
         $this->renderer = $rendererFactory->getRenderer();
-        $this->contextProvider = $contextProvider;
-        $this->twigFunctionPrefix = $twigFunctionPrefix;
-        $this->domIdPrefix = $domIdPrefix;
-        $this->trace = $trace;
 
         switch ($defaultRendering) {
             case ComponentInterface::SERVER_SIDE_RENDERING:
@@ -279,7 +271,7 @@ class ReactRenderExtension extends AbstractExtension
      *
      * @return string
      */
-    private function jsonEncode($input): string
+    private function jsonEncode(mixed $input): string
     {
         $json = json_encode($input);
 

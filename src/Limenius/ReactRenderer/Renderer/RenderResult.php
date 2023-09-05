@@ -7,9 +7,6 @@ namespace Limenius\ReactRenderer\Renderer;
  */
 class RenderResult implements RenderResultInterface
 {
-    private string $evaluated;
-    private string $consoleReplay;
-    private bool $hasErrors;
 
     /**
      * Constructor.
@@ -19,13 +16,10 @@ class RenderResult implements RenderResultInterface
      * @param bool   $hasErrors     Flag if the component rendered with errors.
      */
     public function __construct(
-        string $evaluated,
-        string $consoleReplay,
-        bool $hasErrors
+        private readonly string $evaluated,
+        private readonly string $consoleReplay,
+        private readonly bool $hasErrors
     ) {
-        $this->evaluated = $evaluated;
-        $this->consoleReplay = $consoleReplay;
-        $this->hasErrors = $hasErrors;
     }
 
     /**

@@ -11,16 +11,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class SymfonyContextProvider implements ContextProviderInterface
 {
-    private RequestStack $requestStack;
 
     /**
-     * __construct
+     * Constructor.
      *
      * @param RequestStack $requestStack
      */
-    public function __construct(RequestStack $requestStack)
+    public function __construct(private readonly RequestStack $requestStack)
     {
-        $this->requestStack = $requestStack;
     }
 
     /**
@@ -43,7 +41,7 @@ class SymfonyContextProvider implements ContextProviderInterface
             $request->getPort(),
             $request->getBaseUrl(),
             $request->getPathInfo(),
-            $request->getQueryString()
+            $request->getQueryString() || ''
         );
     }
 }

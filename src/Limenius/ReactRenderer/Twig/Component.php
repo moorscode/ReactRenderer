@@ -9,13 +9,6 @@ class Component implements ComponentInterface
 {
     use PropsAsStringTrait;
 
-    private string $name;
-    private bool $trace;
-    private int $rendering;
-    private string $cacheKey;
-    private bool $cached;
-    private bool $buffered;
-
     /**
      * Constructor.
      *
@@ -28,21 +21,15 @@ class Component implements ComponentInterface
      * @param bool   $trace
      */
     public function __construct(
-        string $name,
+        private readonly string $name,
         array $props,
-        int $rendering,
-        string $cacheKey = '',
-        bool $cached = false,
-        bool $buffered = false,
-        bool $trace = false
+        private readonly int $rendering,
+        private readonly string $cacheKey = '',
+        private readonly bool $cached = false,
+        private readonly bool $buffered = false,
+        private readonly bool $trace = false
     ) {
-        $this->name = $name;
         $this->props = $props;
-        $this->rendering = $rendering;
-        $this->cacheKey = $cacheKey;
-        $this->cached = $cached;
-        $this->buffered = $buffered;
-        $this->trace = $trace;
     }
 
     /**

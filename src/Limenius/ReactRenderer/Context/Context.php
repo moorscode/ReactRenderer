@@ -7,49 +7,31 @@ namespace Limenius\ReactRenderer\Context;
  */
 class Context implements ContextInterface
 {
-    private bool $serverSide;
-    private string $href;
-    private string $requestUri;
-    private string $scheme;
-    private string $host;
-    private int $port;
-    private string $baseUrl;
-    private string $pathInfo;
-    private string $queryString;
 
     /**
      * Constructor.
      *
-     * @param bool        $serverSide
-     * @param string      $href
-     * @param string      $requestUri
-     * @param string      $scheme
-     * @param string      $host
-     * @param int         $port
-     * @param string      $baseUrl
-     * @param string      $pathInfo
-     * @param string|null $queryString
+     * @param bool   $serverSide
+     * @param string $href
+     * @param string $requestUri
+     * @param string $scheme
+     * @param string $host
+     * @param int    $port
+     * @param string $baseUrl
+     * @param string $pathInfo
+     * @param string $queryString
      */
     public function __construct(
-        bool $serverSide,
-        string $href,
-        string $requestUri,
-        string $scheme,
-        string $host,
-        int $port,
-        string $baseUrl,
-        string $pathInfo,
-        ?string $queryString
+        private readonly bool $serverSide,
+        private readonly string $href,
+        private readonly string $requestUri,
+        private readonly string $scheme,
+        private readonly string $host,
+        private readonly int $port,
+        private readonly string $baseUrl,
+        private readonly string $pathInfo,
+        private readonly string $queryString
     ) {
-        $this->serverSide = $serverSide;
-        $this->href = $href;
-        $this->requestUri = $requestUri;
-        $this->scheme = $scheme;
-        $this->host = $host;
-        $this->port = $port;
-        $this->baseUrl = $baseUrl;
-        $this->pathInfo = $pathInfo;
-        $this->queryString = $queryString ?: '';
     }
 
     /**

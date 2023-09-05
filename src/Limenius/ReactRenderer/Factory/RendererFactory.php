@@ -10,15 +10,12 @@ use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
  */
 class RendererFactory
 {
-    /** @var ReactRendererInterface[] */
-    private iterable $taggedServices;
 
     /**
      * @param ReactRendererInterface[] $taggedServices
      */
-    public function __construct(iterable $taggedServices)
+    public function __construct(private readonly iterable $taggedServices)
     {
-        $this->taggedServices = $taggedServices;
     }
 
     /**
