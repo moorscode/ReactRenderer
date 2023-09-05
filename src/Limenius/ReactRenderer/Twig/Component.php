@@ -9,27 +9,12 @@ class Component implements ComponentInterface
 {
     use PropsAsStringTrait;
 
-    /** @var string */
-    private $name;
-
-    /** @var bool */
-    private $trace;
-    /**
-     * @var int
-     */
-    private $rendering;
-    /**
-     * @var string
-     */
-    private $cacheKey;
-    /**
-     * @var bool
-     */
-    private $cached;
-    /**
-     * @var bool
-     */
-    private $buffered;
+    private string $name;
+    private bool $trace;
+    private int $rendering;
+    private string $cacheKey;
+    private bool $cached;
+    private bool $buffered;
 
     /**
      * Constructor.

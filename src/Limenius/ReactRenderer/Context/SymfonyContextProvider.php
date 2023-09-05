@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class SymfonyContextProvider implements ContextProviderInterface
 {
-    private $requestStack;
+    private RequestStack $requestStack;
 
     /**
      * __construct

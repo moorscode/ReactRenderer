@@ -7,24 +7,15 @@ namespace Limenius\ReactRenderer\Context;
  */
 class Context implements ContextInterface
 {
-    /** @var bool */
-    private $serverSide;
-    /** @var string */
-    private $href;
-    /** @var string */
-    private $requestUri;
-    /** @var string */
-    private $scheme;
-    /** @var string */
-    private $host;
-    /** @var int */
-    private $port;
-    /** @var string */
-    private $baseUrl;
-    /** @var string */
-    private $pathInfo;
-    /** @var string */
-    private $queryString;
+    private bool $serverSide;
+    private string $href;
+    private string $requestUri;
+    private string $scheme;
+    private string $host;
+    private int $port;
+    private string $baseUrl;
+    private string $pathInfo;
+    private string $queryString;
 
     /**
      * Constructor.

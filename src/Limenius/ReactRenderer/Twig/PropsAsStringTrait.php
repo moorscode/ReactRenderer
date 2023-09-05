@@ -9,7 +9,7 @@ use Limenius\ReactRenderer\Exception\PropsEncodeException;
  */
 trait PropsAsStringTrait
 {
-    protected $props = [];
+    protected array $props = [];
 
     /**
      * Converts the props array to a string.

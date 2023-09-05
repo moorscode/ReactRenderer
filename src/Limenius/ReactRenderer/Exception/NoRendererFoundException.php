@@ -4,6 +4,9 @@ namespace Limenius\ReactRenderer\Exception;
 
 use OutOfRangeException;
 
+/**
+ * When there are no renderers are found.
+ */
 class NoRendererFoundException extends OutOfRangeException
 {
     /**

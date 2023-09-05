@@ -57,14 +57,12 @@ class PhpExecJsReactRenderer implements ReactRendererInterface
      * Sets the cache pool to be used.
      *
      * @param CacheItemPoolInterface $cache
-     * @param                        $cacheKey
      *
      * @return void
      */
-    public function setCache(CacheItemPoolInterface $cache, $cacheKey)
+    public function setCache(CacheItemPoolInterface $cache)
     {
         $this->cache = $cache;
-        $this->cacheKey = $cacheKey;
     }
 
     /**

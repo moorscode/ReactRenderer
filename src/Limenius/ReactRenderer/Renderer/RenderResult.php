@@ -7,12 +7,9 @@ namespace Limenius\ReactRenderer\Renderer;
  */
 class RenderResult implements RenderResultInterface
 {
-    /** @var string */
-    private $evaluated;
-    /** @var string */
-    private $consoleReplay;
-    /** @var bool */
-    private $hasErrors;
+    private string $evaluated;
+    private string $consoleReplay;
+    private bool $hasErrors;
 
     /**
      * Constructor.
