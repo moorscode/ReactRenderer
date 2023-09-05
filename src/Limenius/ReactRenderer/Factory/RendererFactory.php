@@ -2,8 +2,8 @@
 
 namespace Limenius\ReactRenderer\Factory;
 
+use Limenius\ReactRenderer\Exception\NoRendererFoundException;
 use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
-use Psr\Log\LoggerInterface;
 
 /**
  * Provides the configured renderer in the system.
@@ -11,46 +11,34 @@ use Psr\Log\LoggerInterface;
 class RendererFactory
 {
     /** @var ReactRendererInterface[] */
-    private $taggedServices;
-    private ?string $serverSocketPath;
-    private ?string $serverBundlePath;
-    private LoggerInterface $logger;
+    private iterable $taggedServices;
 
     /**
      * @param ReactRendererInterface[] $taggedServices
-     * @param string|null              $serverBundlePath
-     * @param string|null              $serverSocketPath
-     * @param LoggerInterface          $logger
      */
-    public function __construct(
-        iterable $taggedServices,
-        ?string $serverBundlePath,
-        ?string $serverSocketPath,
-        LoggerInterface $logger
-    ) {
+    public function __construct(iterable $taggedServices)
+    {
         $this->taggedServices = $taggedServices;
-        $this->logger = $logger;
-        $this->serverSocketPath = $serverSocketPath;
-        $this->serverBundlePath = $serverBundlePath;
     }
 
     /**
      * Provides the first renderer.
      *
      * @return ReactRendererInterface
+     *
+     * @throws NoRendererFoundException
      */
     public function getRenderer(): ReactRendererInterface
     {
-        $renderer = iterator_to_array($this->taggedServices->getIterator())[0];
+        $renderers = iterator_to_array($this->taggedServices->getIterator());
 
-        if ($this->serverBundlePath && method_exists($renderer, 'setServerBundlePath')) {
-            $renderer->setServerBundlePath($this->serverBundlePath);
+        if (count($renderers) === 0) {
+            throw new NoRendererFoundException();
         }
 
-        if ($this->serverSocketPath && method_exists($renderer, 'setServerSocketPath')) {
-            $renderer->setServerSocketPath($this->serverSocketPath);
-        }
+        // Pick a random renderer, this spreads the load evenly.
+        $key = array_rand($renderers);
 
-        return $renderer;
+        return $renderers[$key];
     }
 }
