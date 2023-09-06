@@ -16,22 +16,10 @@ use Psr\Log\LoggerInterface;
  */
 class PhpExecJsReactRenderer implements ReactRendererInterface
 {
-    /** @var PhpExecJs */
-    protected $phpExecJs;
-    /** @var string */
-    protected $serverBundlePath;
-    /** @var bool */
-    protected $needToSetContext = true;
-    /** @var bool */
-    protected $failLoud;
-    /** @var \CacheItemPoolInterface */
-    protected $cache;
-    /** @var string */
-    protected $cacheKey;
-    /** @var LoggerInterface|null */
-    private $logger;
-    /** @var ContextProviderInterface */
-    private $contextProvider;
+    protected ?PhpExecJs $phpExecJs;
+    protected bool $needToSetContext = true;
+    protected CacheItemPoolInterface $cache;
+    protected string $cacheKey;
 
     /**
      * PhpExecJsReactRenderer constructor.
@@ -39,18 +27,14 @@ class PhpExecJsReactRenderer implements ReactRendererInterface
      * @param string                   $serverBundlePath
      * @param bool                     $failLoud
      * @param ContextProviderInterface $contextProvider
-     * @param LoggerInterface          $logger
+     * @param LoggerInterface|null     $logger
      */
     public function __construct(
-        string $serverBundlePath,
-        bool $failLoud,
-        ContextProviderInterface $contextProvider,
-        LoggerInterface $logger = null
+        protected string $serverBundlePath,
+        protected bool $failLoud,
+        private readonly ContextProviderInterface $contextProvider,
+        private readonly ?LoggerInterface $logger = null
     ) {
-        $this->serverBundlePath = $serverBundlePath;
-        $this->failLoud = $failLoud;
-        $this->logger = $logger;
-        $this->contextProvider = $contextProvider;
     }
 
     /**
@@ -60,7 +44,7 @@ class PhpExecJsReactRenderer implements ReactRendererInterface
      *
      * @return void
      */
-    public function setCache(CacheItemPoolInterface $cache)
+    public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
     }
@@ -343,7 +327,7 @@ JS;
      * @param string $consoleReplay
      * @param string $componentName
      *
-     * @return mixed
+     * @return void
      *
      * @throws EvalJsException
      */

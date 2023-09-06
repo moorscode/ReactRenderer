@@ -12,15 +12,6 @@ use Psr\Log\LoggerInterface;
  */
 class ExternalReactRenderer implements ReactRendererInterface
 {
-    /** @var string */
-    protected $serverSocketPath;
-    /** @var bool */
-    protected $failLoud;
-    /** @var LoggerInterface|null */
-    private $logger;
-    /** @var ContextProviderInterface */
-    private $contextProvider;
-
     /**
      * Constructor.
      *
@@ -30,23 +21,15 @@ class ExternalReactRenderer implements ReactRendererInterface
      * @param LoggerInterface          $logger
      */
     public function __construct(
-        string $serverSocketPath,
-        bool $failLoud,
-        ContextProviderInterface $contextProvider,
-        LoggerInterface $logger = null
+        protected string $serverSocketPath,
+        private readonly bool $failLoud,
+        private readonly ContextProviderInterface $contextProvider,
+        private readonly LoggerInterface $logger
     ) {
-        $this->serverSocketPath = $serverSocketPath;
-        $this->failLoud = $failLoud;
-        $this->logger = $logger;
-        $this->contextProvider = $contextProvider;
-    }
 
-    /**
-     * @param string $serverSocketPath
-     */
-    public function setServerSocketPath(string $serverSocketPath): void
-    {
-        $this->serverSocketPath = $serverSocketPath;
+        if (!str_contains($this->serverSocketPath, '://')) {
+            throw new \InvalidArgumentException('Missing protocol for server socket path.');
+        }
     }
 
     /**
@@ -65,16 +48,17 @@ class ExternalReactRenderer implements ReactRendererInterface
         array $registeredStores = array(),
         bool $trace = false
     ): RenderResultInterface {
-        if (strpos($this->serverSocketPath, '://') === false) {
-            $this->serverSocketPath = 'unix://'.$this->serverSocketPath;
-        }
-
         if (!$sock = stream_socket_client($this->serverSocketPath, $errno, $errstr)) {
             throw new \RuntimeException($errstr);
         }
-        stream_socket_sendto($sock, $this->wrap($componentName, $propsString, $uuid, $registeredStores, $trace)."\0");
 
-        if (false === $contents = stream_get_contents($sock)) {
+        $data = $this->wrap($componentName, $propsString, $uuid, $registeredStores, $trace);
+        $this->logger->debug('Sending data {data}', ['data' => $data]);
+
+        stream_socket_sendto($sock, $data."\0");
+
+        $contents = stream_get_contents($sock);
+        if (false === $contents) {
             throw new \RuntimeException('Failed to read content from external renderer.');
         }
 
@@ -88,8 +72,15 @@ class ExternalReactRenderer implements ReactRendererInterface
             }
         }
 
+        $evaluated = $result['html'];
+        if (!$result['hasErrors'] && is_array($evaluated) && array_key_exists('componentHtml', $evaluated)) {
+            $evaluated = $evaluated['componentHtml'];
+        }
+
+        $this->logger->debug('Server side rendering returned {contents}', ['contents' => $contents]);
+
         return new RenderResult(
-            $result['hasErrors'] ? $result['html'] : $result['html']['componentHtml'],
+            $evaluated,
             $result['consoleReplayScript'],
             $result['hasErrors']
         );
@@ -157,6 +148,7 @@ JS;
         bool $trace = false
     ): string {
         $context = $this->contextProvider->getContext(true);
+
         $contextArray = [
             'serverSide' => $context->isServerSide(),
             'href' => $context->href(),

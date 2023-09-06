@@ -12,7 +12,7 @@ class EvalJsException extends \RuntimeException
      * @param string $componentName
      * @param int    $consoleReplay
      */
-    public function __construct($componentName, $consoleReplay)
+    public function __construct(string $componentName, int $consoleReplay)
     {
         $message = 'Error rendering component '.$componentName."\nConsole log:".$consoleReplay;
         parent::__construct($message);
