@@ -17,8 +17,6 @@ use Twig\TwigFunction;
  */
 class ReactRenderExtension extends AbstractExtension
 {
-    protected bool $renderServerSide = false;
-    protected bool $renderClientSide = false;
     protected array $registeredStores = [];
     protected bool $needsToSetRailsContext = true;
 
@@ -39,28 +37,12 @@ class ReactRenderExtension extends AbstractExtension
     public function __construct(
         RendererFactory $rendererFactory,
         private readonly ContextProviderInterface $contextProvider,
-        int $defaultRendering,
+        private readonly int $defaultRendering,
         private readonly string $twigFunctionPrefix = '',
         private readonly string $domIdPrefix = 'sfreact',
         private readonly bool $trace = false
     ) {
         $this->renderer = $rendererFactory->getRenderer();
-
-        switch ($defaultRendering) {
-            case ComponentInterface::SERVER_SIDE_RENDERING:
-                $this->renderClientSide = false;
-                $this->renderServerSide = true;
-                break;
-            case ComponentInterface::CLIENT_SIDE_RENDERING:
-                $this->renderClientSide = true;
-                $this->renderServerSide = false;
-                break;
-            case ComponentInterface::SERVER_AND_CLIENT_SIDE_RENDERING:
-            default:
-                $this->renderClientSide = true;
-                $this->renderServerSide = true;
-                break;
-        }
     }
 
     /**
@@ -114,20 +96,20 @@ class ReactRenderExtension extends AbstractExtension
     /**
      * Creates the React component output to be used in the Twig template.
      *
-     * @param string    $componentName
-     * @param array     $props
-     * @param int       $rendering
-     * @param string    $cacheKey
-     * @param bool      $cached
-     * @param bool      $buffered
-     * @param bool|null $trace
+     * @param string      $componentName
+     * @param array       $props
+     * @param string|null $rendering
+     * @param string      $cacheKey
+     * @param bool        $cached
+     * @param bool        $buffered
+     * @param bool|null   $trace
      *
      * @return string
      */
     public function reactRenderComponent(
         string $componentName,
         array $props = array(),
-        int $rendering = ComponentInterface::SERVER_AND_CLIENT_SIDE_RENDERING,
+        ?string $rendering = null,
         string $cacheKey = '',
         bool $cached = false,
         bool $buffered = false,
@@ -135,18 +117,17 @@ class ReactRenderExtension extends AbstractExtension
     ): string {
         $domId = $this->domIdPrefix.'-'.uniqid('reactRenderer', true);
 
-        $str = '';
-
         $component = new Component(
             $componentName,
             $props,
-            $rendering,
+            $this->getRendering($rendering),
             $cacheKey,
             $cached,
             $buffered,
             $trace ?? $this->trace
         );
 
+        $str = '';
         if ($this->shouldRenderClientSide($component)) {
             $str .= $this->createClientSideComponent($component, $domId);
         }
@@ -209,10 +190,6 @@ class ReactRenderExtension extends AbstractExtension
      */
     private function shouldRenderServerSide(ComponentInterface $component): bool
     {
-        if (is_null($component->rendering())) {
-            return $this->renderServerSide;
-        }
-
         return $component->rendering() ^ ComponentInterface::CLIENT_SIDE_RENDERING;
     }
 
@@ -225,10 +202,6 @@ class ReactRenderExtension extends AbstractExtension
      */
     private function shouldRenderClientSide(ComponentInterface $component): bool
     {
-        if (is_null($component->rendering())) {
-            return $this->renderClientSide;
-        }
-
         return $component->rendering() ^ ComponentInterface::SERVER_SIDE_RENDERING;
     }
 
@@ -393,5 +366,26 @@ class ReactRenderExtension extends AbstractExtension
         }
 
         return $output;
+    }
+
+    /**
+     * @param string|null $rendering
+     *
+     * @return int
+     *
+     * @throws \InvalidArgumentException
+     */
+    private function getRendering(?string $rendering): int
+    {
+        if (is_null($rendering)) {
+            return $this->defaultRendering;
+        }
+
+        return match ($rendering) {
+            'client_side' => ComponentInterface::CLIENT_SIDE_RENDERING,
+            'server_side' => ComponentInterface::SERVER_SIDE_RENDERING,
+            'both' => ComponentInterface::SERVER_AND_CLIENT_SIDE_RENDERING,
+            default => throw new \InvalidArgumentException('Rendering argument should be one of: "client_side", "server_side" or "both".'),
+        };
     }
 }

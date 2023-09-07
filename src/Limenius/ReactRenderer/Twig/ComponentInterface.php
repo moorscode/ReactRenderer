@@ -35,9 +35,9 @@ interface ComponentInterface
     /**
      * The rendering type of the component.
      *
-     * @return self::SERVER_SIDE_RENDERING|self::CLIENT_SIDE_RENDERING|self::SERVER_AND_CLIENT_SIDE_RENDERING|null
+     * @return self::SERVER_SIDE_RENDERING|self::CLIENT_SIDE_RENDERING|self::SERVER_AND_CLIENT_SIDE_RENDERING
      */
-    public function rendering(): ?int;
+    public function rendering(): int;
 
     /**
      * Indicates if this component should be retrieved from cache.

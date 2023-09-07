@@ -30,6 +30,17 @@ class Component implements ComponentInterface
         private readonly bool $trace = false
     ) {
         $this->props = $props;
+
+        assert(
+            in_array(
+                $rendering,
+                [
+                    self::SERVER_SIDE_RENDERING,
+                    self::CLIENT_SIDE_RENDERING,
+                    self::SERVER_AND_CLIENT_SIDE_RENDERING,
+                ]
+            )
+        );
     }
 
     /**
