@@ -1,3 +1,5 @@
+![Github Action checks](https://github.com/moorscode/ReactRenderer/actions/workflows/checks.yaml/badge.svg?branch=extract-render-coupling)
+
 # ReactRenderer
 
 ReactRenderer lets you implement React.js client and server-side rendering in your PHP projects, allowing the development of universal (isomorphic) applications.
@@ -14,24 +16,16 @@ Features include:
 - Error and debug management for server and client side code.
 - Simple integration with Webpack.
 
-[![Build Status](https://travis-ci.org/Limenius/ReactRenderer.svg?branch=master)](https://travis-ci.org/Limenius/ReactRenderer)
-[![Latest Stable Version](https://poser.pugx.org/limenius/react-renderer/v/stable)](https://packagist.org/packages/limenius/react-renderer)
-[![Latest Unstable Version](https://poser.pugx.org/limenius/react-renderer/v/unstable)](https://packagist.org/packages/limenius/react-renderer)
-[![License](https://poser.pugx.org/limenius/react-renderer/license)](https://packagist.org/packages/limenius/react-renderer)
 
 ## Complete example
 
-For a complete live example, with a sensible Webpack set up, a sample application to start with and integration in a Symfony Project, check out [Symfony React Sandbox](https://github.com/Limenius/symfony-react-sandbox).
+For a complete live example, with a sensible Webpack set up, a sample application to start with and integration in a Symfony Project, check out [Symfony React Sandbox](https://github.com/moorscode/symfony-react-sandbox).
 
 ## Installation
 
 ReactRenderer uses Composer, please checkout the [composer website](http://getcomposer.org) in case of doubt about this.
 
-This command will install `ReactRenderer` into your project.
-
-```bash
-$ composer require limenius/react-renderer
-```
+> _Installation instructions_
 
 > ReactRenderer follows the PSR-4 convention names for its classes so you can integrate it with your autoloader.
 
@@ -56,11 +50,13 @@ Note that it is very likely that you will need separated entry points for your s
 
 If you use server-side rendering, you are also expected to have a Webpack bundle for it, containing React, React on Rails and your JavaScript code that will be used to evaluate your component.
 
-Take a look at [the Webpack configuration in the symfony-react-sandbox](https://github.com/Limenius/symfony-react-sandbox/blob/master/webpack.config.serverside.js) for more information.
+Take a look at [the Webpack configuration in the symfony-react-sandbox](https://github.com/moorscode/symfony-react-sandbox/blob/master/webpack.config.serverside.js) for more information.
 
 ### Enable Twig Extension
 
 First, you need to configure and enable the Twig extension.
+
+__Todo: Replace with Node JS external server config__
 
 ```php
 use Limenius\ReactRenderer\Renderer\PhpExecJsReactRenderer;
@@ -79,9 +75,9 @@ $twig->addExtension($ext);
 
 `ReactRenderExtension` needs as arguments a _renderer_ and a string that defines if we are rendering our React components `client_side`, `render_side` or `both`.
 
-The renderer is one of the renders that inherit from [`AbstractReactRenderer`](ReactRenderer/src/Limenius/ReactRenderer/Renderer/AbstractReactRenderer.php).
+The renderer is one of the renders that implements the [`ReactRendererInterface`](ReactRenderer/src/Limenius/ReactRenderer/Renderer/AbstractReactRenderer.php).
 
-This library provides currently two renderers:
+This library provides two renderer examples:
 
 - `PhpExecJsReactRenderer`: that uses internally [phpexecjs](https://github.com/nacmartin/phpexecjs) to autodetect the best javascript runtime available.
 - `ExternalServerReactRenderer`: that relies on a external nodeJs server.
@@ -100,11 +96,10 @@ For instance, a controller action that will produce a valid props could be:
 /**
  * @Route("/recipes", name="recipes")
  */
-public function homeAction(Request $request)
+public function homeAction(Request $request, SerializerInterface $serializer)
 {
-    $serializer = $this->get('serializer');
     return $this->render('recipe/home.html.twig', [
-        'props' => $serializer->serialize(
+        'props' => $serializer->normalize(
             ['recipes' => $this->get('recipe.manager')->findAll()->recipes], 'json')
     ]);
 }
@@ -162,6 +157,8 @@ const App = (initialProps, context) => {};
 
 The Symfony context provider has this implementation:
 
+__Todo: Replace with updated implementation.__
+
 ```php
     public function getContext($serverSide)
     {
@@ -188,9 +185,8 @@ So you can access these properties in your React components, to get information 
 
 This library supports two modes of using server-side rendering:
 
-- Using [PhpExecJs](https://github.com/nacmartin/phpexecjs) to auto-detect a JavaScript environment (call node.js via terminal command or use V8Js PHP) and run JavaScript code through it.
-
 - Using an external node.js server ([Example](https://github.com/Limenius/symfony-react-sandbox/blob/master/external-server.js). It will use a dummy server, that knows nothing about your logic to render React for you. Introduces more operational complexity (you have to keep the node server running, which is not a big deal anyways).
+- Using [PhpExecJs](https://github.com/nacmartin/phpexecjs) to auto-detect a JavaScript environment (call node.js via terminal command or use V8Js PHP) and run JavaScript code through it.
 
 Currently, the best option is to use an external server in production, since having [V8js](https://github.com/phpv8/v8js) is rather hard to compile. However, if you can compile it or your distribution/OS has good packages, it is a very good option if you enable caching, as we will see in the next section.
 
@@ -233,38 +229,7 @@ return (
 
 Make sure you use the same identifier here (`MySharedReduxStore`) as you used in your Twig file to set up the store.
 
-You have an example in the [Sandbox](https://github.com/Limenius/symfony-react-sandbox).
-
-### Generator Functions
-
-Instead of returning a component, you may choose to return an object from your JavaScript code.
-
-One use case for this is to render Title or other meta tags in Server Side Rendering with [React Helmet](https://github.com/nfl/react-helmet). You may want to return the generated HTML of the component along with the title.
-
-```js
-export default (initialProps, context) => {
-  const renderedHtml = {
-    componentHtml: renderToString(<MyApp />),
-    title: Helmet.renderStatic().title.toString()
-  };
-  return { renderedHtml };
-};
-```
-
-In these cases, the primary HTML code that is going to be rendered must be in the key `componentHtml`. You can access the resulting array in Twig:
-
-```twig
-{% set recipes = react_component_array('RecipesApp', {'props': props}) %}
-{% block title %}
-  {{ recipes.title is defined ? recipes.title | raw : '' }}
-{% endblock title %}
-
-{% block body %}
-  {{ recipes.componentHtml | raw }}
-{% endblock %}
-```
-
-There is an example of this in the sandbox.
+You have an example in the [Sandbox](https://github.com/moorscode/symfony-react-sandbox).
 
 ### Buffering
 
@@ -293,11 +258,6 @@ There are two types of cache, of very different nature:
 Sometimes you want to cache a component and don't go through the server-side rendering process again. In that case, you can set the option `cached` to `true`:
 
 `{{ react_component('RecipesApp', {'props': props, 'cached': true}) }}`
-
-You can also set a cache key. This key could be for instance the id of an entity. Well, it is up to you.
-If you don't set an id, the id will be based on the name of the component, so no matter what props you pass, the component will be cached and rendered with the same representation.
-
-`{{ react_component('RecipesApp', {'props': props, 'cached': true, 'cache_key': "hi_there"}) }}`
 
 To enable/disable the cache globally for your app you need to write this configuration. The default value is disabled, so please enable this feature if you plan to use it.
 
@@ -336,3 +296,4 @@ This library is under the MIT license. See the complete license in the bundle:
 ## Credits
 
 ReactRenderer is heavily inspired by the great [React On Rails](https://github.com/shakacode/react_on_rails), and uses its npm package to render React components.
+This project is heavily inspired by the Limenius ReactRenderer project. 
