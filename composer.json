@@ -1,5 +1,5 @@
 {
-    "name": "limenius/react-renderer",
+    "name": "myonlinestore/react-renderer",
     "description": "Client and Server-side React rendering",
     "type": "library",
     "keywords": ["react", "reactjs", "isomorphic", "twig"],
@@ -15,7 +15,7 @@
         }
     ],
     "autoload": {
-        "psr-4": { "Limenius\\ReactRenderer\\": "src/Limenius/ReactRenderer" }
+        "psr-4": { "MyOnlineStore\\ReactRenderer\\": "src/MyOnlineStore/ReactRenderer"}
     },
     "scripts": {
         "cs": "@php vendor/bin/phpcs -s",

@@ -1,8 +1,6 @@
 <?php
 
-namespace Limenius\ReactRenderer\Renderer;
-
-use Psr\Cache\CacheItemPoolInterface;
+namespace MyOnlineStore\ReactRenderer\Renderer;
 
 /**
  * The signature a ReactRender implementation must follow.

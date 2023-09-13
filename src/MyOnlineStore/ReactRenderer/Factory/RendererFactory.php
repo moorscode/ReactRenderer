@@ -1,9 +1,9 @@
 <?php
 
-namespace Limenius\ReactRenderer\Factory;
+namespace MyOnlineStore\ReactRenderer\Factory;
 
-use Limenius\ReactRenderer\Exception\NoRendererFoundException;
-use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
+use MyOnlineStore\ReactRenderer\Exception\NoRendererFoundException;
+use MyOnlineStore\ReactRenderer\Renderer\ReactRendererInterface;
 
 /**
  * Provides the configured renderer in the system.

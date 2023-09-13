@@ -1,6 +1,6 @@
 <?php
 
-namespace Limenius\ReactRenderer\Twig;
+namespace MyOnlineStore\ReactRenderer\Twig;
 
 /**
  * The component.

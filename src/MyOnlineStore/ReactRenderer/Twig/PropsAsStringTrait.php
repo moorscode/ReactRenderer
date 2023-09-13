@@ -1,8 +1,8 @@
 <?php
 
-namespace Limenius\ReactRenderer\Twig;
+namespace MyOnlineStore\ReactRenderer\Twig;
 
-use Limenius\ReactRenderer\Exception\PropsEncodeException;
+use MyOnlineStore\ReactRenderer\Exception\PropsEncodeException;
 
 /**
  * Provides the props as a string to be used in HTML or JavaScript.

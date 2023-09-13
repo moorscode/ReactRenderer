@@ -1,6 +1,6 @@
 <?php
 
-namespace Limenius\ReactRenderer\Exception;
+namespace MyOnlineStore\ReactRenderer\Exception;
 
 /**
  * Class PropsEncodeException

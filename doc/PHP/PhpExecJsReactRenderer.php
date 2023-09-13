@@ -1,10 +1,10 @@
 <?php
 // phpcs:disable PSR1.Classes.ClassDeclaration.MissingNamespace
 
-use Limenius\ReactRenderer\Context\ContextProviderInterface;
-use Limenius\ReactRenderer\Renderer\ReactRendererInterface;
-use Limenius\ReactRenderer\Renderer\RenderResult;
-use Limenius\ReactRenderer\Renderer\RenderResultInterface;
+use MyOnlineStore\ReactRenderer\Context\ContextProviderInterface;
+use MyOnlineStore\ReactRenderer\Renderer\ReactRendererInterface;
+use MyOnlineStore\ReactRenderer\Renderer\RenderResult;
+use MyOnlineStore\ReactRenderer\Renderer\RenderResultInterface;
 use Nacmartin\PhpExecJs\PhpExecJs;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;

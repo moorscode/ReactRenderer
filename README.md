@@ -59,9 +59,9 @@ First, you need to configure and enable the Twig extension.
 __Todo: Replace with Node JS external server config__
 
 ```php
-use Limenius\ReactRenderer\Renderer\PhpExecJsReactRenderer;
-use Limenius\ReactRenderer\Twig\ReactRenderExtension;
-use Limenius\ReactRenderer\Context\SymfonyContextProvider;
+use MyOnlineStore\ReactRenderer\Renderer\PhpExecJsReactRenderer;
+use MyOnlineStore\ReactRenderer\Twig\ReactRenderExtension;
+use MyOnlineStore\ReactRenderer\Context\SymfonyContextProvider;
 
 // SymfonyContextProvider provides information about the current request, such as hostname and path
 // We need an instance of Symfony\Component\HttpFoundation\RequestStack to use it
