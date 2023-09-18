@@ -1,6 +1,6 @@
 <?php
 
-namespace Limenius\ReactRenderer\Context;
+namespace MyOnlineStore\ReactRenderer\Context;
 
 /**
  * Signature of the context.

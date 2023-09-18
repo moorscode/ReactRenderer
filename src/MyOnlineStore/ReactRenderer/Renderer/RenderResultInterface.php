@@ -1,6 +1,6 @@
 <?php
 
-namespace Limenius\ReactRenderer\Renderer;
+namespace MyOnlineStore\ReactRenderer\Renderer;
 
 /**
  * Signature of the ReactRender result value object.
