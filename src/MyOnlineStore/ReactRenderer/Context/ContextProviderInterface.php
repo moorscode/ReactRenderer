@@ -1,6 +1,6 @@
 <?php
 
-namespace Limenius\ReactRenderer\Context;
+namespace MyOnlineStore\ReactRenderer\Context;
 
 /**
  * Interface ContextProviderInterface
@@ -13,6 +13,8 @@ interface ContextProviderInterface
      * getContext
      *
      * @param boolean $serverSide whether is this a server side context
+     *
+     * @return ContextInterface
      */
-    public function getContext($serverSide);
+    public function getContext(bool $serverSide): ContextInterface;
 }
